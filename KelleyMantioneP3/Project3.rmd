@@ -1,0 +1,456 @@
+---
+title: "P3: 2012 Georgia Presidential Campaign Contributions"
+author: "Kelley Mantione"
+date: "30 April2015"
+output: html_document
+---
+
+
+========================================================
+  
+  
+***
+  
+  
+### Initial Set-up
+I chose to explore the financial contributions from Georgia to the 2012 presidential election campaigns of both President Obama and Mitt Romney.  What trends exist in this data?   The belief is that more people contributed to President Obama's campaign than to Mitt Romney's, but at lower amounts.  Does the data show this?   Also, I wanted to look at what role occupation played, and if retirement affected a person's propensity to give.  Lastly, I wanted to narrow the analysis down to Athens, and look at donors' occupations to get a feeling of what people donated to President Obama's campaign.
+The first dataset came from the FEC website, where I downloaded the  Georgia contributions to President Obama's 2012 campaign.
+
+  
+```{r }
+setwd('~/Documents/datasets')
+# had to move tran_id to first column for unique row names
+ga_obama <-read.csv('P80003338-GA.csv')
+summary(ga_obama)
+#str(ga_obama)
+#names(ga_obama)
+```
+
+  
+#### What are some things that you notice right away?
+Looking at the summary, it's interesting that the most common occupation of these donors is "RETIRED".  Also, the city with the highest number of contributions is Atlanta, of course, but the 1st Q zip code (30312)  was my old zip code when I lived in Atlanta.  It's an area downtown by the Atlanta Brave's stadium and Zoo Atlanta.  Also, in this summary I am seeing a minimum contribution amount that is negative. What does this mean?  I went back to website to understand and noticed that there was an attribute named "receipt desc".  Plotted that against the amount contributed.  Almost all of the negative contributions had a description of "Refund" while the positive contributions had a blank refund description, which explained the negative amounts.  Since these contributions don't represent actual contributions, I decided to leave these data points out of my dataset.
+  
+
+```{r }
+ga_obama_positive = subset(ga_obama, contb_receipt_amt >0)
+library(ggplot2)
+```
+
+#### Univariate plots section - Contribution Amounts
+First, I wanted to understand the number of people donating to President Obama's campaign at the different amount levels.
+
+```{r fig.width=10}
+#qplot(x=contb_receipt_amt, data = ga_obama_positive) 
+qplot(x=contb_receipt_amt, data = ga_obama_positive, binwidth=10, 
+      xlab="Amount of Contribution",ylab="Number of contributors", 
+      main="President Obama") +
+   scale_x_continuous(limits=c(0,2000), breaks=seq(0,2000,100))
+```
+
+This plot shows a spike of people contributing at a very small amount level.  Let's look at this a little more by first narrowing down to a scale of less than $125.
+```{r fig.width=10}
+
+qplot(x=contb_receipt_amt, data = ga_obama_positive, binwidth=10, 
+      xlab="Amount of Contribution",ylab="Number of contributors" ,
+      main="President Obama") +
+   scale_x_continuous(limits=c(0,125), breaks=seq(0,125,10))
+```
+
+Wow- so the most popular amount to donate to President Obama's campaign was between $10-$20.  Second was $50-$60, and then third $100-$110.  Let's see how many people gave at these levels.
+
+```{r fig.width=10}
+ga_obama_10 = subset(ga_obama, 
+                     (contb_receipt_amt >= 10 & contb_receipt_amt<=20))
+ga_obama_50 = subset(ga_obama, 
+                     (contb_receipt_amt >= 50 & contb_receipt_amt<=60))
+ga_obama_100 = subset(ga_obama, 
+                      (contb_receipt_amt >= 100 & contb_receipt_amt<=110))
+ga_obama_200= subset(ga_obama, 
+                     (contb_receipt_amt >= 0 & contb_receipt_amt<=200))
+ga_obama_250= subset(ga_obama, 
+                     (contb_receipt_amt >= 0 & contb_receipt_amt<=250))
+```
+So looking at these datasets, 23,662 contributions were at the $10-20 range, 16,252 were at the $50-60, and 12,912 was at the $100-110 range.  This is from a dataset of 95,753 positive contributions in Georgia.  This means that almost a quarter (24.7%) of President Obama's contributions were at the $10-20 range.
+Also, 90,375 contributions were less than $250- a whopping 94% overall.
+
+Now, let's look at the proportion of contributions at different amounts.
+
+```{r fig.width=10}
+qplot(x=contb_receipt_amt, y= ..count../sum(..count..), 
+      data = ga_obama_positive, 
+      xlab="Amount of Contribution",
+      ylab="Proportion of users who contributed that amount",
+      main="President Obama",
+      geom='freqpoly') + 
+      scale_x_continuous(limits=c(-100,5000), 
+                         breaks=seq(-100,5000,500))
+```
+
+This plot really shows that the majority of President Obama's supporters contributed at less than $250 levels, with next to none at the higher levels.  But how does the Republican candidate compare?  I now downloaded the contributions from Georgia to the 2012 Mitt Romney campaign from the FEC website and again limited the dataset to postive contributions.
+
+```{r fig.width=10}
+setwd('~/Documents/datasets')
+ga_mitt <-read.csv('P80003353-GA.csv') 
+
+ga_mitt_positive = subset(ga_mitt, contb_receipt_amt >0)
+summary(ga_mitt_positive)
+#str(ga_mitt)
+```
+
+
+First, note that there are only 52,407  contributions to Mitt Romney's campaign from Georgia, while there was 95,753 to President Obama.  Also, the mean contribution amount to Mitt Romney was $401, while that to President Obama's was only $102.  Romney had a 1st quantile of $50, where President Obama's was only $19.  We already can see the difference in contribution amounts.  Let's now compare the number of contributions at different amount levels.
+
+```{r fig.width=10}
+qplot(x=contb_receipt_amt, data = ga_mitt_positive, 
+      binwidth=10, xlab="Amount of Contribution",
+      ylab="Number of contributors", main="Mitt Romney") +
+   scale_x_continuous(limits=c(0,5000), breaks=seq(0,5000,500))
+```
+
+From this plot one can see significant contributions at the higher levels ($500, $1000, $2500).  Let's look at the less than $125 scale like we did above for President Obama:
+
+
+```{r fig.width=10}
+qa <-qplot(x=contb_receipt_amt, data = ga_obama_positive, 
+           binwidth=10, xlab="Amount of Contribution to Obama",
+           ylab="Number of contributors",main="President Obama") +
+   scale_x_continuous(limits=c(0,125), breaks=seq(0,125,10))
+
+   
+qb <- qplot(x=contb_receipt_amt, data = ga_mitt_positive, 
+            binwidth=10, xlab="Amount of Contribution to Romney",
+            ylab="Number of contributors",main="Mitt Romney") +
+   scale_x_continuous(limits=c(0,125), breaks=seq(0,125,10))
+
+library(gridExtra)
+
+grid.arrange(qa,qb, ncol=1) 
+```
+It's easy to see that President Obama had many more contributions at these lower amounts than did Mitt Romney.  
+What is the most popular contribution amount for Mitt Romney?
+
+```{r fig.width=10}
+qplot(x=contb_receipt_amt, data = ga_mitt_positive, binwidth=10, 
+      xlab="Amount of Contribution to Romney",ylab="Number of contributors", 
+      main="Mitt Romney") +
+   scale_x_continuous(limits=c(0,500), breaks=seq(0,500,50))
+```
+This shows that the most popular donation amount to Mitt Romney's campaign was at the $100 level- almost 10 times more than President Obama's.
+
+Now let's compare the distribution overall.
+```{r fig.width=10}
+q1 <- qplot(x=contb_receipt_amt, data = ga_mitt_positive, 
+      xlab="Amount of Contribution to Romney",
+      ylab="N",
+      geom='freqpoly') + 
+      scale_x_continuous(limits=c(-100,5000), breaks=seq(-100,5000,500))
+
+q2 <- qplot(x=contb_receipt_amt, data = ga_obama_positive, 
+      xlab="Amount of Contribution to Obama",
+      ylab="N",
+      geom='freqpoly') + 
+      scale_x_continuous(limits=c(-100,5000), breaks=seq(-100,5000,500))
+
+library(gridExtra)
+
+grid.arrange(q1,q2, ncol=1) 
+```
+Comparing these two plots, it is easy to see how many more people contributed to President Obama's campaign than to  Mitt Romney's, and that they did it at lower levels.  Let's now compare the distribution of amounts proportionately:
+
+```{r fig.width=10}
+q3 <- qplot(x=contb_receipt_amt, y= ..count../sum(..count..), 
+            data = ga_obama_positive, 
+            xlab="Amount of Contribution",
+            ylab="President Obama",
+            geom='freqpoly') +
+            scale_x_continuous(limits=c(-100,2600), breaks=seq(-100,2600, 200))
+
+q4 <- qplot(x=contb_receipt_amt, y= ..count../sum(..count..), 
+            data = ga_mitt_positive, 
+            xlab="Amount of Contribution",
+            ylab="Mitt Romney",
+            geom='freqpoly') +
+            scale_x_continuous(limits=c(-100,2600), breaks=seq(-100,2600, 200))
+
+grid.arrange(q3,q4, ncol=1)
+
+#g <- arrangeGrob(q3,q4, ncol=1) 
+#ggsave(file="../P3/compare_amounts.pdf", g) #saves g
+```
+One can see that the bulk of President Obama's supporters contributed less than $100, while contributions to Mitt Romney's campaigns had spikes around  $500, $100 and $2500.  
+
+
+***
+
+#### Bivariate plots section - Contribution Amounts vs City 
+Next, let's take a look at contribution amounts per city.
+
+```{r fig.width=10}
+qplot(contbr_city,contb_receipt_amt, data = ga_obama_positive, main="President Obama") 
+```
+
+
+This scatterplot is very hard to read, as the individual cities are not labeled and the data points are clumped together on the x-axis.  You can see that most of the amounts were under $500, with clear lines at $1000, $1500, $2000, and $2500.   Going to build a new data set containing averages to see more details.
+  
+
+
+```{r fig.width=10}
+library(dplyr)
+contbr_city_groups <- group_by(ga_obama_positive, contbr_city)
+ga_obama.contrib_by_city <- summarise(contbr_city_groups, 
+                       contrib_mean = mean(contb_receipt_amt), 
+                       contrib_median = median(contb_receipt_amt),
+                       n = n()) 
+ga_obama.contrib_by_city <- arrange(ga_obama.contrib_by_city, contbr_city) 
+
+#head(ga_obama.contrib_by_city,30)
+
+ggplot(aes(x=contbr_city, y = contrib_mean),data = ga_obama.contrib_by_city ) + 
+  ggtitle("Contribution Amounts to Obama by City in Georgia") +
+  geom_point() + scale_x_discrete()
+
+  
+
+```
+This plot is easier to read, but I would like to make it wider and have all the different cities listed for comparison.
+Let's get a set of cities to look at that have n (number of contributors) > 200.  Also rotated city labels so they could be read, and adding color.
+
+```{r fig.width=10}
+
+ggplot(aes(x=contbr_city, y = contrib_mean),
+       data = subset(ga_obama.contrib_by_city, n>200) ) + 
+       geom_point(color="blue") + scale_x_discrete() + 
+       ggtitle("Contribution Amounts to Obama by City in Georgia") +
+       theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+
+```
+
+So the highest mean contribution came from Carrollton ($160), second highest was Atlanta ($145), and the lowest from Dallas (< $40).  Athens, where I live, came in around $85.
+
+
+### Now onto the Republicans!
+Let's aggregate by city and look at the mean contribution amount for Mitt Romney as we did for President Obama.
+
+```{r fig.width=10}
+
+#qplot(contbr_city,contb_receipt_amt, data = ga_mitt)
+#ga_mitt_positive = subset(ga_mitt, contb_receipt_amt >0)
+#qplot(contbr_city,contb_receipt_amt, data = ga_mitt_positive)
+
+mitt_contbr_city_groups <- group_by(ga_mitt_positive, contbr_city)
+ga_mitt.contrib_by_city <- summarise(mitt_contbr_city_groups, 
+                       contrib_mean = mean(contb_receipt_amt), 
+                       contrib_median = median(contb_receipt_amt),
+                       n = n()) 
+ga_mitt.contrib_by_city <- arrange(ga_mitt.contrib_by_city, contbr_city) 
+
+
+ggplot(aes(x=contbr_city, y = contrib_mean),
+       data = subset(ga_mitt.contrib_by_city, n>200) ) + 
+       geom_point(color="red") + scale_x_discrete() + 
+       ggtitle("Contribution Amounts to Romney by City in Georgia") +
+       theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+```
+Sea Island had the highest amount, which was almost $1200! Maybe there was some sort of campaign event held there?   Compare that to Carrollton for Obama which as his highest came in around $160.  
+Second highest for Romney was also Atlanta, which was around $650.  Compare that to the mean amount from Atlanta for Obama which was only $145.
+
+Let's plot both together, and compare city with donation amount by party.
+Added red color for Mitt Romney contributions
+
+```{r fig.width=10, fig.height=10}
+library(gridExtra)
+obamap1 <- ggplot(aes(x=contbr_city, y = contrib_mean),
+                  data = subset(ga_obama.contrib_by_city, n>200) ) + 
+                  geom_point(color="blue") + scale_x_discrete() + 
+                  ggtitle("Contribution Amounts to Obama by City in Georgia") +
+                  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+
+mittp2 <- ggplot(aes(x=contbr_city, y = contrib_mean),
+                  data = subset(ga_mitt.contrib_by_city, n>200) ) + 
+                  geom_point(color="red") + scale_x_discrete() + 
+                  ggtitle("Contribution Amounts to Romney by City in Georgia") +
+                  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+
+grid.arrange(obamap1,mittp2, ncol=1) 
+```
+
+One can easily see that average contribution amounts by city to Mitt Romney's campaign are much greater than the average contribution amounts by city to President Obama's campaign.  Also, you can see that the number of cities that have more than 200 contributors is greater for President Obama then Mitt Romney, which matches our finding above for overall number of contributors.
+I would like to see this on one plot for easier comparison.  Created two new data sets and binded them together using rbind, then plotted on same axes.
+
+
+
+```{r fig.width=10}
+visual1= data.frame(subset(ga_obama.contrib_by_city, n>200))
+visual2= data.frame(subset(ga_mitt.contrib_by_city, n>200))
+visual1$group <- "obama"
+visual2$group <- "mitt"
+visual12 <- rbind(visual1, visual2)
+
+ggplot(visual12, aes(x=contbr_city, y=contrib_mean, group=group, col=group, 
+          fill=group)) + geom_point() + scale_x_discrete() + 
+          theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +  
+          scale_y_continuous(limits=c(0, 1500),breaks=seq(0,1500,200)) 
+
+mean_contrib_city_both <- ggplot(visual12, aes(x=contbr_city, y=contrib_mean, 
+          group=group, col=group, fill=group)) +
+          geom_point() + scale_x_discrete() + 
+          theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +  
+          scale_y_continuous(limits=c(0, 1500),breaks=seq(0,1500,200)) 
+
+#ggsave(mean_contrib_city_both,file="../P3/both.png",width=15,height=3)
+
+```
+Across the board, average Republican contributions per city are higher than Democratic ones.
+
+So although Romney won the money game in Georgia, let's look at the number of financial supporters of each campaign by city in Georgia.  Who had the hearts and minds?
+
+```{r fig.width=10}
+ggplot(visual12, aes(x=contbr_city, n, group=group, col=group, fill=group)) +
+      geom_point() + scale_x_discrete() + 
+      theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +  
+      scale_y_continuous(limits=c(0, 1500),breaks=seq(0,1500,200)) 
+```
+
+Looking at this plot, President Obama had more supporters in almost all cities with more than 200 contributions.  The outliers seems to be Roswell, where I don't see a blue dot, and Athens, where I know there should be a blue dot.  Looking at the Y-scale, I realize at 1500 contributions it is way too low and needs to be adjusted.  Replotting.
+
+```{r fig.width=12, fig.height=10}
+ggplot(visual12, aes(x=contbr_city, n, group=group, col=group, fill=group)) +
+      geom_point() + scale_x_discrete() + 
+      theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +  
+      scale_y_continuous(limits=c(0, 30000),breaks=seq(0,30000,1000)) 
+```
+To make sure that my scale was correct, I first plotted the y-axis up to 50,000 contributions.  I was then able to see that Atlanta had over 27,000 contributions to President Obama.  After setting the y-axis to 30,000, it is easy to see in almost every city in Georgia, President Obama had many more contributions than Mitt Romney.
+
+
+#### Multivariate plots section 
+
+Next, I would like to see if being retired was a factor in contribution amounts.  
+
+```{r fig.width=10}
+ga_obama_positive$retired <- "N"                   
+ga_obama_positive$retired[grepl("RETIRED", 
+          ga_obama_positive$contbr_occupation) == TRUE] <- "Y"
+table(ga_obama_positive$retired)
+
+```
+In this table, there is an occupation "RETIRED" plus many occupations that contain the word "RETIRED".  Decided to create a new variable 'retired'.  26.3% of Obama donors are retired.
+
+```{r fig.width=10}
+ga_mitt_positive$retired <- "N"
+ga_mitt_positive$retired[grepl("RETIRED", 
+          ga_mitt_positive$contbr_occupation) == TRUE] <- "Y"
+table(ga_mitt_positive$retired)
+
+```
+Looks like a slighty higher percentage, 33%, of Mitt Romney donors are retired.
+Let's first plot contribution amounts to both campaigns by retired vs working people.  
+
+```{r fig.width=10}
+qplot(factor(retired), contb_receipt_amt, data = ga_obama_positive, 
+      geom = "boxplot", main="President Obama", xlab='Retired', 
+      ylab='Contribution Amount', ylim=c(0,2500))
+qplot(factor(retired), contb_receipt_amt, data = ga_mitt_positive, 
+      geom = "boxplot", main="Mitt Romney", xlab='Retired', 
+      ylab='Contribution Amount', ylim=c(0,2500))
+```
+The plot for President Obama shows that there is not much difference between retired and working supporters donations, while for Mitt Romney, one can see a slightly lower amount for retired people.
+
+Let's finally analyze all occupations, not just retired/working.  I am going to narrow this down to my town, Athens (home of University of Georgia).  This gave us 2521 contributions.
+
+```{r fig.width=10}
+ga_obama_athens= subset(ga_obama, contbr_city=="ATHENS")
+library(dplyr)
+occupation_groups <- group_by(ga_obama_athens, contbr_occupation)
+ga_obama_athens.contrib_by_occ <- summarise(occupation_groups, 
+                       contrib_mean = mean(contb_receipt_amt), 
+                       contrib_median = median(contb_receipt_amt),
+                       n = n()) 
+ga_obama_athens.contrib_by_occ <- arrange(ga_obama_athens.contrib_by_occ, 
+                                          contbr_occupation) 
+
+
+ggplot(aes(x=contbr_occupation, y = contrib_mean),
+       data = subset(ga_obama_athens.contrib_by_occ, n>10) ) + 
+       geom_point(color="blue") + scale_x_discrete() + 
+       theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+```
+This last plot was very interesting to me.  When I first narrowed the number of contributors to over 100 for an occupation, all that was plotted was "PROFESSOR" and "RETIRED, which is exactly the case when you live in a college town.   I then let the number of contributors with that occupation go down to 5 to see all the different occupations.   Many of these are associated with UGA.  It was also interesting that the occupation of the highest contributed amount was "HOMEMAKER", with the next in line being "RESEARCHER".  
+
+Now lets plot overall number of contributions to President Obama per occupation in Athens.
+```{r fig.width=10}
+ggplot(aes(x=contbr_occupation, y = n),
+       data = subset(ga_obama_athens.contrib_by_occ, n>10) ) + 
+       geom_point(color="blue") + scale_x_discrete() + 
+       theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+```
+This shows what we found above, that the occupations with the most contributions in Athens is "Professor" and "Retired", with "Attorney" next in line.
+
+
+Athens, Georgia is known as a "blue" town in a "red" state.  Overall in Georgia, 64.6 % of contributions when to Obama, let's see percentage in Athens:
+
+```{r }
+ga_mitt_athens= subset(ga_mitt, contbr_city=="ATHENS")
+```
+This gives us only 456 contributions to Mitt Romney's campaign from Athens.  So for Athens, the percentage of contributions to Obama is 84.6% compared to 64.6% for Georgia overall.
+
+
+### Final Plots and Summary
+
+Plot One
+
+```{r fig.width=10}
+romney <- qplot(x=contb_receipt_amt, data = ga_mitt_positive, color=retired,
+      xlab="Amount of Contribution to Romney",
+      ylab="N",
+      geom='freqpoly') + 
+      scale_x_continuous(limits=c(-100,5000), breaks=seq(-100,5000,500))
+
+obama <- qplot(x=contb_receipt_amt, data = ga_obama_positive, color=retired,
+      xlab="Amount of Contribution to Obama",
+      ylab="N",
+      geom='freqpoly') + 
+      scale_x_continuous(limits=c(-100,5000), breaks=seq(-100,5000,500))
+grid.arrange(romney,obama, ncol=1) 
+```
+Plot One Description:
+
+This plot clearly shows the two main trends when comparing contributions to both campaigns. First, President Obama received many more contributions overall than did Mitt Romney.  This is shown by the scales on these two graphs- we know that President Obama had over 90,000 contributions at amounts less than $250.  Also, you can see that Mitt Romney had significant contributions at some of the higher donation levels, while President Obama was flat at these higher levels.  We will look at these trends by city in the next two plots.  Lastly, retired supports closely followed working supporters in both campaigns.
+
+Plot Two
+
+```{r fig.width=10}
+ggplot(visual12, aes(x=contbr_city, y=contrib_mean, group=group, 
+                  col=group, fill=group)) +
+  xlab('City in Georgia') + ylab("Mean Contribution Amount") + 
+  ggtitle("2012 Presidental Mean Contribution Amount by City in Georgia") +
+  geom_point() + scale_x_discrete() + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +  
+  scale_y_continuous(limits=c(0, 1500),breaks=seq(0,1500,200)) 
+```
+Plot Two Description:
+
+This chart shows the overall higher contribution amounts to Mitt Romney than to President Obama in Georgia.  Every singe city shown had a higher mean donation amount to Mitt Romney.  For comparison, the mean contribution amount from Atlanta to Mitt Romney's campaign was $650, compared with only $145 from Atlanta to President Obama.
+
+Plot Three
+
+```{r fig.width=12, fig.height=10}
+ggplot(visual12, aes(x=contbr_city, n, group=group, col=group, fill=group)) +
+  xlab('City in Georgia') + ylab("Number of Contributions ") + 
+  ggtitle("2012 Presidental Contributions by City in Georgia") +
+  geom_point() + scale_x_discrete() + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +  
+  scale_y_continuous(limits=c(0, 30000),breaks=seq(0,30000,1000)) 
+```
+Plot Three Description:
+
+So although the mean contribution amount in each city was higher for Mitt Romney, this chart shows that in almost every city in Georgia, President Obama had more overall campaign contributions than did Mitt Romney, although these contributions were at the lower levels.  Looking at Atlanta, President Obama had over 27,000 contributions to his campaign, where Mitt Romney had only around 11,000.
+
+### Reflection
+ I started with 95,753 contributions to President Obama and 52,407 contributions to Mitt Romney in the 2012 presidential campaign from Georgia.  I then looked at the distribution of contribution amounts to President Obama, and noticed that the most popular contribution amount was a very low amount of between $10 and $20.  I then compared that to Mitt Romney's donation amounts, where the most popular amount was a much higher $100.  I then looked at both mean contribution amounts and number of contributions by city in Georgia.  It was easy to see that although Romney had higher mean contribution amounts across the board, President Obama had more supporters in almost of every city of Georgia.
+
+Then I looked to see if retirement was a factor in contribution amounts using boxplots.  It did not appear to be a factor in President Obama's campaign, but contributions by retired people to Mitt Romeny's campaign was slightly lower than those still working.
+
+Finally, we narrowed the focus down to Athens, Georgia and looked at number of contributions and contribution amounts by occupation.  The highest amounts came from supporters who were Homemakers, Researchers, Emergency Physician, and "Retired Artist", which Athens, GA is lucky enough to have quite a few of.  The most prevalent occupations for Obama supporters in Athens are "Professor", "Retired", and "Attorney."
+
+I would be interested to compare contributions by factors as age, income level, religious affiliation, etc.  I was wishing the dataset had some of these attributes. 
+ 
